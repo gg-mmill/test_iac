@@ -1,0 +1,31 @@
+name: GitGuardian iac scan
+
+on: [push, pull_request]
+
+jobs:
+  scanning:
+    name: GitGuardian iac scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: GitGuardian iac scan
+        run: |
+          cd ..
+          git clone --single-branch https://github.com/GitGuardian/ggshield.git
+          cd ggshield
+          pip install pipenv --no-input
+          pipenv install --dev --skip-lock
+          cd ..
+          cd test_iac
+          PIPENV_PIPFILE=/home/runner/work/test_iac/ggshield/Pipfile pipenv run python ../ggshield/ggshield/__main__.py iac scan ci ../test_iac --verbose
+
+        env:
+          GITHUB_PUSH_BEFORE_SHA: ${{ github.event.before }}
+          GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
+          GITHUB_PULL_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITGUARDIAN_API_URL: "https://api.staging.gitguardian.tech/"
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
